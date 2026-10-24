@@ -11,7 +11,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Tổng Quan Nghiệp Vụ Thư Viện (Library Business KPIs)",
+      "title": "1. Giám Sát Web Application (Web Metrics)",
       "type": "row"
     },
     {
@@ -25,7 +25,7 @@
           }
         }
       },
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "id": 1,
       "title": "Tổng Đầu Sách Trong Kho",
       "type": "stat",
@@ -52,7 +52,7 @@
           }
         }
       },
-      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "id": 2,
       "title": "Số Sách Đang Được Mượn",
       "type": "stat",
@@ -75,9 +75,9 @@
           }
         }
       },
-      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "id": 3,
-      "title": "Tổng Lượng HTTP Requests Đã Xử Lý",
+      "title": "Tổng Lượng Request HTTP",
       "type": "stat",
       "targets": [
         {
@@ -88,17 +88,34 @@
       ]
     },
     {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
-      "id": 101,
-      "title": "Hiệu Năng Ứng Dụng & Database (App & DB Metrics)",
-      "type": "row"
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "purple", "value": null }]
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "title": "Độ Trễ Trung Bình (Latency)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "(rate(library_http_request_duration_seconds_sum[1m]) / rate(library_http_request_duration_seconds_count[1m])) * 1000",
+          "refId": "A"
+        }
+      ]
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 6 },
-      "id": 4,
-      "title": "Tần Suất Request Web App (Request Rate per second)",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 5 },
+      "id": 5,
+      "title": "Tần Suất Request Web App (Request Rate theo Status Code)",
       "type": "timeseries",
       "targets": [
         {
@@ -110,31 +127,93 @@
       ]
     },
     {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
+      "id": 101,
+      "title": "2. Giám Sát Cơ Sở Dữ Liệu PostgreSQL (DB Metrics)",
+      "type": "row"
+    },
+    {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 6 },
-      "id": 5,
-      "title": "Thời Gian Phản Hồi Trung Bình (Latency ms)",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 13 },
+      "id": 6,
+      "title": "PostgreSQL Active Connections (library_db)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "pg_stat_database_numbackends{datname=\"library_db\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 13 },
+      "id": 7,
+      "title": "Tốc Độ Giao Dịch DB (Transactions Commit Rate / sec)",
       "type": "timeseries",
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "rate(library_http_request_duration_seconds_sum[1m]) / rate(library_http_request_duration_seconds_count[1m]) * 1000",
-          "legendFormat": "Avg Latency (ms)",
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"library_db\"}[1m])",
+          "legendFormat": "Commits/sec",
           "refId": "A"
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
       "id": 102,
-      "title": "Hệ Thống Log Tập Trung (Centralized Logs - Loki & LogQL)",
+      "title": "3. Giám Sát Tài Nguyên Container (Container Metrics - cAdvisor)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 19 },
+      "id": 8,
+      "title": "Bộ Nhớ RAM Tiêu Thụ Của Docker Containers (Memory Usage)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "container_memory_usage_bytes{id=~\"/docker.*\"}",
+          "legendFormat": "Container {{id}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 103,
+      "title": "4. Nhật Ký Log Hệ Thống Tập Trung (Centralized Logs - Loki)",
       "type": "row"
     },
     {
       "datasource": { "type": "loki", "uid": "Loki" },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
-      "id": 6,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "id": 9,
       "title": "Truy Vết Log Nginx Reverse Proxy (Loki - LogQL: {job=\"nginx\"})",
       "type": "logs",
       "targets": [
@@ -155,5 +234,5 @@
   "timezone": "browser",
   "title": "Hệ Thống Quản Lý Thư Viện - Giám Sát Tổng Hợp",
   "uid": "library-system-overview",
-  "version": 1
+  "version": 2
 }
