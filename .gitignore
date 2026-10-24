@@ -1,0 +1,11 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+
+# Environment secrets
+.env
+
+# Docker volumes and persistent state
+*.log
+.DS_Store
+Thumbs.db

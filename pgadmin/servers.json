@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "PostgreSQL Library DB",
+      "Group": "Library System",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "library_db",
+      "Username": "lib_user",
+      "SSLMode": "prefer"
+    }
+  }
+}

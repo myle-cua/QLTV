@@ -1,0 +1,198 @@
+# ==============================================================
+# HỆ THỐNG QUẢN LÝ THƯ VIỆN (LIBRARY MANAGEMENT SYSTEM)
+# Đầy đủ Nginx, Web App, PostgreSQL, pgAdmin, Prometheus, Grafana, Loki
+# ==============================================================
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+    internal: false
+  monitoring_net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  grafana_data:
+  loki_data:
+  nginx_logs:
+
+services:
+  # ------------------------------------------------------------
+  # 1. NGINX REVERSE PROXY (Tiêu chí 3)
+  # ------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: library_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - frontend_net
+      - monitoring_net
+    depends_on:
+      - library-web
+
+  # ------------------------------------------------------------
+  # 2. ỨNG DỤNG WEB QUẢN LÝ THƯ VIỆN (Tiêu chí 2 & 6)
+  # ------------------------------------------------------------
+  library-web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: library_web_app
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-library_db}
+      DB_USER: ${POSTGRES_USER:-lib_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-LibrarySecurePass2026!}
+    networks:
+      - frontend_net
+      - backend_net
+      - monitoring_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ------------------------------------------------------------
+  # 3. CƠ SỞ DỮ LIỆU POSTGRESQL (Tiêu chí 2 & 6)
+  # Cổng 5432 không mở ra ngoài Host -> Đảm bảo cô lập dữ liệu
+  # ------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: library_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-library_db}
+      POSTGRES_USER: ${POSTGRES_USER:-lib_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-LibrarySecurePass2026!}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # 4. GIAO DIỆN QUẢN TRỊ PGADMIN 4 (Tiêu chí 2)
+  # ------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: library_pgadmin
+    restart: unless-stopped
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@library.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-AdminSecurePass2026!}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - backend_net
+    depends_on:
+      - postgres
+
+  # ------------------------------------------------------------
+  # 5. GIÁM SÁT PROMETHEUS + EXPORTERS (Tiêu chí 4)
+  # ------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: library_prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - monitoring_net
+      - backend_net
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: library_postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-lib_user}:${POSTGRES_PASSWORD:-LibrarySecurePass2026!}@postgres:5432/${POSTGRES_DB:-library_db}?sslmode=disable"
+    networks:
+      - backend_net
+      - monitoring_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: library_cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring_net
+
+  # ------------------------------------------------------------
+  # 6. TRỰC QUAN HÓA METRICS VỚI GRAFANA (Tiêu chí 4)
+  # ------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: library_grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-GrafanaAdmin2026!}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring_net
+    depends_on:
+      - prometheus
+      - loki
+
+  # ------------------------------------------------------------
+  # 7. HỆ THỐNG LOG TẬP TRUNG LOKI + PROMTAIL (Tiêu chí 5)
+  # ------------------------------------------------------------
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: library_loki
+    restart: unless-stopped
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - loki_data:/loki
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+    networks:
+      - monitoring_net
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: library_promtail
+    restart: unless-stopped
+    volumes:
+      - nginx_logs:/var/log/nginx:ro
+      - ./monitoring/promtail/promtail.yml:/etc/promtail/config.yml:ro
+    networks:
+      - monitoring_net
+    depends_on:
+      - loki
