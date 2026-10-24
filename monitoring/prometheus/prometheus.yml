@@ -1,0 +1,26 @@
+# Cấu hình Scrape Metrics cho Prometheus Server
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # 1. Tự giám sát Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 2. Giám sát Ứng dụng Web Quản lý Thư viện qua endpoint /metrics
+  - job_name: 'library-web-app'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['library-web:3000']
+
+  # 3. Giám sát Cơ sở dữ liệu PostgreSQL qua Postgres Exporter
+  - job_name: 'postgres-db'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # 4. Giám sát Container Resources qua cAdvisor (CPU, Memory, Network I/O)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']

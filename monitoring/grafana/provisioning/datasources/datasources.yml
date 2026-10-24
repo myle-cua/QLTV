@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  # 1. Prometheus Metrics Data Source
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  # 2. Loki Logs Data Source
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
