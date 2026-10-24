@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Thư Viện - Library Management System</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2b5876;
+      --secondary-color: #4e4376;
+      --accent-color: #0d6efd;
+    }
+    body {
+      background-color: #f4f6f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      border-radius: 0 0 1rem 1rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .card-kpi {
+      border: none;
+      border-radius: 0.75rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .card-kpi:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    .kpi-icon {
+      font-size: 2.2rem;
+      opacity: 0.85;
+    }
+    .nav-pills .nav-link {
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      color: #495057;
+    }
+    .nav-pills .nav-link.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .table-container {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .badge-status {
+      font-size: 0.85rem;
+      padding: 0.4em 0.7em;
+    }
+    .query-code {
+      background-color: #1e1e2f;
+      color: #49f380;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <i class="fa-solid fa-book-bookmark text-warning me-2"></i>
+        LIBRARY SYSTEM <span class="badge bg-primary text-light fs-6">v1.0</span>
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> PostgreSQL Online</span>
+        <a href="/metrics" target="_blank" class="btn btn-outline-light btn-sm">
+          <i class="fa-solid fa-chart-line me-1"></i> /metrics
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Banner Header -->
+  <div class="hero-banner">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h2 class="fw-bold mb-1"><i class="fa-solid fa-book-open-reader me-2"></i> Hệ Thống Quản Lý Thư Viện</h2>
+          <p class="mb-0 text-light opacity-75">
+            Phần mềm quản lý mượn/trả sách, độc giả & danh mục tài liệu. Tích hợp giám sát Nginx, Prometheus, Grafana & Loki.
+          </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+          <button class="btn btn-warning fw-bold px-3 py-2 shadow-sm" onclick="showBorrowModal()">
+            <i class="fa-solid fa-plus-circle me-1"></i> Tạo Phiếu Mượn Sách
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container pb-5">
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 justify-content-center gap-2" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-dashboard" data-bs-toggle="pill" data-bs-target="#content-dashboard" type="button" role="tab">
+          <i class="fa-solid fa-chart-pie me-1"></i> Tổng Quan (Dashboard)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-books" data-bs-toggle="pill" data-bs-target="#content-books" type="button" role="tab" onclick="loadBooks()">
+          <i class="fa-solid fa-book me-1"></i> Quản Lý Sách
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-readers" data-bs-toggle="pill" data-bs-target="#content-readers" type="button" role="tab" onclick="loadReaders()">
+          <i class="fa-solid fa-users me-1"></i> Quản Lý Độc Giả
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-borrows" data-bs-toggle="pill" data-bs-target="#content-borrows" type="button" role="tab" onclick="loadBorrowRecords()">
+          <i class="fa-solid fa-handshake me-1"></i> Mượn / Trả Sách
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-system" data-bs-toggle="pill" data-bs-target="#content-system" type="button" role="tab">
+          <i class="fa-solid fa-shield-halved me-1"></i> Giám Sát & Hardening
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="mainTabsContent">
+
+      <!-- 1. DASHBOARD -->
+      <div class="tab-pane fade show active" id="content-dashboard" role="tabpanel">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card card-kpi bg-primary text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-uppercase mb-1 opacity-75">Tổng Đầu Sách</h6>
+                  <h3 class="fw-bold mb-0" id="kpi-total-titles">--</h3>
+                </div>
+                <i class="fa-solid fa-book-journal-whills kpi-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi bg-success text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-uppercase mb-1 opacity-75">Bản Sao Khả Dụng</h6>
+                  <h3 class="fw-bold mb-0" id="kpi-available-copies">--</h3>
+                </div>
+                <i class="fa-solid fa-book-bookmark kpi-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi bg-warning text-dark p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-uppercase mb-1 opacity-75">Đang Được Mượn</h6>
+                  <h3 class="fw-bold mb-0" id="kpi-active-borrows">--</h3>
+                </div>
+                <i class="fa-solid fa-clock-rotate-left kpi-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi bg-info text-white p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="text-uppercase mb-1 opacity-75">Tổng Độc Giả</h6>
+                  <h3 class="fw-bold mb-0" id="kpi-total-readers">--</h3>
+                </div>
+                <i class="fa-solid fa-id-card kpi-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Architecture Quick Status -->
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="table-container">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Phiếu Mượn Gần Đây</h5>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Mã Độc Giả</th>
+                      <th>Tên Độc Giả</th>
+                      <th>Tựa Sách</th>
+                      <th>Ngày Hẹn Trả</th>
+                      <th>Trạng Thái</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-recent-borrows">
+                    <tr><td colspan="5" class="text-center text-muted">Đang tải dữ liệu...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="table-container">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-network-wired text-success me-2"></i> Trạng Thái Dịch Vụ</h5>
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-globe text-primary me-2"></i> Nginx Reverse Proxy</span>
+                  <span class="badge bg-success">Port 80 (Active)</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-server text-info me-2"></i> Node.js Web App</span>
+                  <span class="badge bg-success">Port 3000 (Healthy)</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-database text-warning me-2"></i> PostgreSQL 16</span>
+                  <span class="badge bg-success">Port 5432 (Isolated)</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-desktop text-secondary me-2"></i> pgAdmin 4</span>
+                  <span class="badge bg-primary">Port 5050</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-chart-line text-danger me-2"></i> Prometheus & Grafana</span>
+                  <span class="badge bg-success">Port 9090 / 3001</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span><i class="fa-solid fa-file-waveform text-dark me-2"></i> Loki & Promtail</span>
+                  <span class="badge bg-success">Port 3100</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. QUẢN LÝ SÁCH -->
+      <div class="tab-pane fade" id="content-books" role="tabpanel">
+        <div class="table-container">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-books text-primary me-2"></i> Danh Mục Sách Thư Viện</h5>
+            <div class="d-flex gap-2">
+              <div class="input-group" style="width: 280px;">
+                <input type="text" id="bookSearchInput" class="form-control form-control-sm" placeholder="Tìm tên sách, tác giả, ISBN...">
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadBooks()"><i class="fa-solid fa-search"></i></button>
+              </div>
+              <button class="btn btn-primary btn-sm fw-bold" onclick="showAddBookModal()">
+                <i class="fa-solid fa-plus me-1"></i> Thêm Sách Mới
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>ISBN</th>
+                  <th>Tựa Sách</th>
+                  <th>Tác Giả</th>
+                  <th>Thể Loại</th>
+                  <th class="text-center">Số Lượng</th>
+                  <th class="text-center">Khả Dụng</th>
+                  <th class="text-center">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="booksTableBody">
+                <tr><td colspan="8" class="text-center text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. QUẢN LÝ ĐỘC GIẢ -->
+      <div class="tab-pane fade" id="content-readers" role="tabpanel">
+        <div class="table-container">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-id-card text-info me-2"></i> Danh Sách Độc Giả</h5>
+            <div class="d-flex gap-2">
+              <div class="input-group" style="width: 280px;">
+                <input type="text" id="readerSearchInput" class="form-control form-control-sm" placeholder="Tìm tên, mã thẻ, email...">
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadReaders()"><i class="fa-solid fa-search"></i></button>
+              </div>
+              <button class="btn btn-info btn-sm text-white fw-bold" onclick="showAddReaderModal()">
+                <i class="fa-solid fa-user-plus me-1"></i> Thêm Độc Giả
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Mã Thẻ</th>
+                  <th>Họ Và Tên</th>
+                  <th>Email</th>
+                  <th>Số Điện Thoại</th>
+                  <th>Địa Chỉ</th>
+                  <th class="text-center">Trạng Thái</th>
+                  <th class="text-center">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="readersTableBody">
+                <tr><td colspan="8" class="text-center text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. MƯỢN / TRẢ SÁCH -->
+      <div class="tab-pane fade" id="content-borrows" role="tabpanel">
+        <div class="table-container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-handshake text-warning me-2"></i> Lịch Sử & Danh Sách Phiếu Mượn</h5>
+            <button class="btn btn-warning btn-sm fw-bold" onclick="showBorrowModal()">
+              <i class="fa-solid fa-plus-circle me-1"></i> Mượn Sách Mới
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Độc Giả</th>
+                  <th>Mã Thẻ</th>
+                  <th>Sách Đã Mượn</th>
+                  <th>Ngày Mượn</th>
+                  <th>Hạn Trả</th>
+                  <th>Ngày Trả Thực Tế</th>
+                  <th class="text-center">Trạng Thái</th>
+                  <th class="text-center">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="borrowsTableBody">
+                <tr><td colspan="9" class="text-center text-muted">Đang tải...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. GIÁM SÁT & HARDENING -->
+      <div class="tab-pane fade" id="content-system" role="tabpanel">
+        <div class="row g-4">
+          <!-- Quick Access Cards -->
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <h5 class="card-title fw-bold text-danger"><i class="fa-solid fa-chart-simple me-2"></i> Grafana Dashboard</h5>
+                <p class="text-muted small">Xem metrics CPU, RAM, HTTP Requests, Status Codes và Postgres Connection Pool.</p>
+                <div class="mb-2"><strong>URL:</strong> <code>http://localhost:3001</code></div>
+                <div class="mb-3"><strong>Tài khoản:</strong> <code>admin</code> / <code>GrafanaAdmin2026!</code></div>
+                <a href="http://localhost:3001" target="_blank" class="btn btn-outline-danger btn-sm w-100">
+                  <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Mở Grafana
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <h5 class="card-title fw-bold text-primary"><i class="fa-solid fa-database me-2"></i> pgAdmin 4</h5>
+                <p class="text-muted small">Giao diện đồ họa quản trị Cơ sở dữ liệu PostgreSQL trực quan.</p>
+                <div class="mb-2"><strong>URL:</strong> <code>http://localhost:5050</code></div>
+                <div class="mb-3"><strong>Tài khoản:</strong> <code>admin@library.local</code> / <code>AdminSecurePass2026!</code></div>
+                <a href="http://localhost:5050" target="_blank" class="btn btn-outline-primary btn-sm w-100">
+                  <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Mở pgAdmin
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <h5 class="card-title fw-bold text-warning"><i class="fa-solid fa-fire me-2"></i> Prometheus</h5>
+                <p class="text-muted small">Cơ sở dữ liệu time-series thu thập metrics từ Web, Exporter & Container.</p>
+                <div class="mb-2"><strong>URL:</strong> <code>http://localhost:9090</code></div>
+                <div class="mb-3"><strong>Endpoint:</strong> <code>library-web:3000/metrics</code></div>
+                <a href="http://localhost:9090" target="_blank" class="btn btn-outline-warning btn-sm w-100">
+                  <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Mở Prometheus
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- LogQL Demo Queries Box -->
+          <div class="col-12">
+            <div class="table-container">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-terminal text-success me-2"></i> Câu Lệnh LogQL Demo Chấm Điểm (Loki + Promtail)</h5>
+              <p class="text-muted small">Sao chép các lệnh dưới đây dán vào mục <strong>Grafana -> Explore -> Data Source: Loki</strong>:</p>
+              
+              <div class="mb-3">
+                <span class="badge bg-primary mb-1">1. Xem toàn bộ log Nginx Reverse Proxy</span>
+                <div><span class="query-code">{job="nginx"}</span></div>
+              </div>
+
+              <div class="mb-3">
+                <span class="badge bg-danger mb-1">2. Lọc log có HTTP Status code >= 400 (Phát hiện lỗi / Client error)</span>
+                <div><span class="query-code">{job="nginx"} | json | status >= 400</span></div>
+              </div>
+
+              <div class="mb-3">
+                <span class="badge bg-warning text-dark mb-1">3. Tính tần suất Request theo thời gian (Request rate per minute)</span>
+                <div><span class="query-code">sum by (status) (rate({job="nginx"} | json [1m]))</span></div>
+              </div>
+
+              <div class="mb-0">
+                <span class="badge bg-info mb-1">4. Lọc log ứng dụng Web Quản lý thư viện</span>
+                <div><span class="query-code">{job="library-web-app"}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hardening Summary Box -->
+          <div class="col-12">
+            <div class="table-container">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-lock text-primary me-2"></i> Các Biện Pháp Hardening Đã Áp Dụng (Tiêu Chí 6)</h5>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light">
+                    <h6 class="fw-bold text-success"><i class="fa-solid fa-user-shield me-2"></i> 1. Non-Root Container</h6>
+                    <p class="small text-muted mb-0">Ứng dụng Web chạy với người dùng quyền hạn thấp <code>node</code> (UID 1000), ngăn chặn nguy cơ leo thang đặc quyền container breakout.</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light">
+                    <h6 class="fw-bold text-success"><i class="fa-solid fa-diagram-project me-2"></i> 2. Network Isolation</h6>
+                    <p class="small text-muted mb-0">Phân tách thành 3 mạng bridge: <code>frontend_net</code>, <code>backend_net</code>, <code>monitoring_net</code>. Database PostgreSQL không expose port 5432 ra ngoài host.</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light">
+                    <h6 class="fw-bold text-success"><i class="fa-solid fa-key me-2"></i> 3. Database Least Privilege</h6>
+                    <p class="small text-muted mb-0">Ứng dụng web kết nối qua user riêng biệt <code>lib_user</code> với mật khẩu phức tạp, không cấp quyền Superuser của hệ thống CSDL.</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light">
+                    <h6 class="fw-bold text-success"><i class="fa-solid fa-shield-virus me-2"></i> 4. Nginx Security Headers & Rate Limiting</h6>
+                    <p class="small text-muted mb-0">Kích hoạt <code>server_tokens off;</code>, Rate Limiting 10 req/s và 5 Security Headers chuẩn OWASP (X-Frame-Options, CSP, Nosniff...).</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: THÊM SÁCH -->
+  <div class="modal fade" id="addBookModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="fa-solid fa-book-medical me-2"></i> Thêm Sách Mới</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addBookForm" onsubmit="submitAddBook(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Mã ISBN <span class="text-danger">*</span></label>
+              <input type="text" name="isbn" class="form-control" placeholder="VD: 978-0132350884" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tựa Sách <span class="text-danger">*</span></label>
+              <input type="text" name="title" class="form-control" placeholder="Tên sách" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tác Giả <span class="text-danger">*</span></label>
+              <input type="text" name="author" class="form-control" placeholder="Tên tác giả" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Thể Loại</label>
+                <input type="text" name="category" class="form-control" placeholder="VD: Công nghệ, Kỹ năng">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Năm Xuất Bản</label>
+                <input type="number" name="published_year" class="form-control" value="2024">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tổng Số Lượng Bản Sao</label>
+              <input type="number" name="total_copies" class="form-control" value="5" min="1" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i> Lưu Sách</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: THÊM ĐỘC GIẢ -->
+  <div class="modal fade" id="addReaderModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2"></i> Thêm Độc Giả Mới</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addReaderForm" onsubmit="submitAddReader(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Mã Thẻ Độc Giả <span class="text-danger">*</span></label>
+              <input type="text" name="card_number" class="form-control" placeholder="VD: LIB-2026-005" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Họ Và Tên <span class="text-danger">*</span></label>
+              <input type="text" name="full_name" class="form-control" placeholder="VD: Nguyễn Văn Nam" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" placeholder="nam.nguyen@email.com" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Số Điện Thoại</label>
+              <input type="text" name="phone" class="form-control" placeholder="0987654321">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Địa Chỉ</label>
+              <input type="text" name="address" class="form-control" placeholder="Hà Nội, Việt Nam">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-info text-white"><i class="fa-solid fa-save me-1"></i> Lưu Độc Giả</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TẠO PHIẾU MƯỢN SÁCH -->
+  <div class="modal fade" id="borrowModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title"><i class="fa-solid fa-handshake me-2"></i> Lập Phiếu Mượn Sách</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="borrowForm" onsubmit="submitBorrow(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Chọn Độc Giả <span class="text-danger">*</span></label>
+              <select name="reader_id" id="borrowReaderSelect" class="form-select" required>
+                <option value="">-- Đang nạp danh sách độc giả --</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Chọn Sách Cần Mượn <span class="text-danger">*</span></label>
+              <select name="book_id" id="borrowBookSelect" class="form-select" required>
+                <option value="">-- Đang nạp danh sách sách --</option>
+              </select>
+              <small class="text-muted">Chỉ hiển thị những đầu sách đang còn bản sao khả dụng.</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Hạn Trả Sách <span class="text-danger">*</span></label>
+              <input type="date" name="due_date" id="borrowDueDate" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Ghi Chú</label>
+              <textarea name="notes" class="form-control" rows="2" placeholder="Ghi chú thêm nếu có..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-warning fw-bold"><i class="fa-solid fa-check me-1"></i> Xác Nhận Mượn</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Client-side Logic -->
+  <script>
+    // Khởi tạo trang
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStats();
+      loadRecentBorrows();
+      // Mặc định ngày hẹn trả là 14 ngày sau
+      const next14Days = new Date();
+      next14Days.setDate(next14Days.getDate() + 14);
+      document.getElementById('borrowDueDate').value = next14Days.toISOString().split('T')[0];
+    });
+
+    // 1. Tải Stats Dashboard
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const json = await res.json();
+        if (json.success) {
+          document.getElementById('kpi-total-titles').innerText = json.data.totalTitles;
+          document.getElementById('kpi-available-copies').innerText = `${json.data.availableCopies} / ${json.data.totalCopies}`;
+          document.getElementById('kpi-active-borrows').innerText = json.data.activeBorrows;
+          document.getElementById('kpi-total-readers').innerText = json.data.totalReaders;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadRecentBorrows() {
+      try {
+        const res = await fetch('/api/borrow-records');
+        const json = await res.json();
+        const tbody = document.getElementById('dashboard-recent-borrows');
+        if (json.success && json.data.length > 0) {
+          tbody.innerHTML = json.data.slice(0, 5).map(r => `
+            <tr>
+              <td><code>${r.reader_card}</code></td>
+              <td><strong>${r.reader_name}</strong></td>
+              <td>${r.book_title}</td>
+              <td>${new Date(r.due_date).toLocaleDateString('vi-VN')}</td>
+              <td>${getStatusBadge(r.status)}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Chưa có phiếu mượn nào</td></tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'BORROWED') return '<span class="badge bg-warning text-dark badge-status"><i class="fa-solid fa-clock me-1"></i>Đang Mượn</span>';
+      if (status === 'RETURNED') return '<span class="badge bg-success badge-status"><i class="fa-solid fa-check me-1"></i>Đã Trả</span>';
+      return '<span class="badge bg-danger badge-status"><i class="fa-solid fa-triangle-exclamation me-1"></i>Quá Hạn</span>';
+    }
+
+    // 2. Quản lý Sách
+    async function loadBooks() {
+      const q = document.getElementById('bookSearchInput')?.value || '';
+      try {
+        const res = await fetch(`/api/books?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        const tbody = document.getElementById('booksTableBody');
+        if (json.success && json.data.length > 0) {
+          tbody.innerHTML = json.data.map((b, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code>${b.isbn}</code></td>
+              <td><strong>${b.title}</strong></td>
+              <td>${b.author}</td>
+              <td><span class="badge bg-light text-dark border">${b.category || 'Chung'}</span></td>
+              <td class="text-center">${b.total_copies}</td>
+              <td class="text-center">
+                <span class="badge ${b.available_copies > 0 ? 'bg-success' : 'bg-danger'}">
+                  ${b.available_copies}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteBook(${b.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Không tìm thấy sách nào</td></tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function showAddBookModal() {
+      new bootstrap.Modal(document.getElementById('addBookModal')).show();
+    }
+
+    async function submitAddBook(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+      try {
+        const res = await fetch('/api/books', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          bootstrap.Modal.getInstance(document.getElementById('addBookModal')).hide();
+          form.reset();
+          loadBooks();
+          loadStats();
+          alert('Thêm sách thành công!');
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (err) {
+        alert('Lỗi kết nối máy chủ!');
+      }
+    }
+
+    async function deleteBook(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa cuốn sách này?')) return;
+      try {
+        const res = await fetch(`/api/books/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          loadBooks();
+          loadStats();
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (e) {
+        alert('Lỗi kết nối!');
+      }
+    }
+
+    // 3. Quản lý Độc giả
+    async function loadReaders() {
+      const q = document.getElementById('readerSearchInput')?.value || '';
+      try {
+        const res = await fetch(`/api/readers?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        const tbody = document.getElementById('readersTableBody');
+        if (json.success && json.data.length > 0) {
+          tbody.innerHTML = json.data.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code>${r.card_number}</code></td>
+              <td><strong>${r.full_name}</strong></td>
+              <td>${r.email}</td>
+              <td>${r.phone || 'N/A'}</td>
+              <td>${r.address || 'N/A'}</td>
+              <td class="text-center">
+                <span class="badge ${r.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}">
+                  ${r.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm khóa'}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteReader(${r.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Không có độc giả nào</td></tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function showAddReaderModal() {
+      new bootstrap.Modal(document.getElementById('addReaderModal')).show();
+    }
+
+    async function submitAddReader(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+      try {
+        const res = await fetch('/api/readers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          bootstrap.Modal.getInstance(document.getElementById('addReaderModal')).hide();
+          form.reset();
+          loadReaders();
+          loadStats();
+          alert('Thêm độc giả thành công!');
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (err) {
+        alert('Lỗi kết nối máy chủ!');
+      }
+    }
+
+    async function deleteReader(id) {
+      if (!confirm('Bạn có chắc muốn xóa độc giả này?')) return;
+      try {
+        const res = await fetch(`/api/readers/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          loadReaders();
+          loadStats();
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (e) {
+        alert('Lỗi kết nối!');
+      }
+    }
+
+    // 4. Mượn / Trả Sách
+    async function loadBorrowRecords() {
+      try {
+        const res = await fetch('/api/borrow-records');
+        const json = await res.json();
+        const tbody = document.getElementById('borrowsTableBody');
+        if (json.success && json.data.length > 0) {
+          tbody.innerHTML = json.data.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><strong>${r.reader_name}</strong></td>
+              <td><code>${r.reader_card}</code></td>
+              <td>${r.book_title}</td>
+              <td>${new Date(r.borrow_date).toLocaleDateString('vi-VN')}</td>
+              <td>${new Date(r.due_date).toLocaleDateString('vi-VN')}</td>
+              <td>${r.return_date ? new Date(r.return_date).toLocaleDateString('vi-VN') : '<span class="text-muted">Chưa trả</span>'}</td>
+              <td class="text-center">${getStatusBadge(r.status)}</td>
+              <td class="text-center">
+                ${r.status === 'BORROWED' || r.status === 'OVERDUE' ? `
+                  <button class="btn btn-success btn-sm fw-bold" onclick="returnBook(${r.id})">
+                    <i class="fa-solid fa-arrow-rotate-left me-1"></i> Trả Sách
+                  </button>
+                ` : `<span class="text-success small"><i class="fa-solid fa-circle-check"></i> Đã hoàn tất</span>`}
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">Chưa có phiếu mượn nào</td></tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function showBorrowModal() {
+      // Nạp danh sách độc giả và sách
+      try {
+        const [readersRes, booksRes] = await Promise.all([
+          fetch('/api/readers'),
+          fetch('/api/books')
+        ]);
+        const readers = await readersRes.json();
+        const books = await booksRes.json();
+
+        const readerSelect = document.getElementById('borrowReaderSelect');
+        const bookSelect = document.getElementById('borrowBookSelect');
+
+        readerSelect.innerHTML = '<option value="">-- Chọn Độc Giả --</option>' + 
+          readers.data.map(r => `<option value="${r.id}">${r.full_name} (${r.card_number})</option>`).join('');
+
+        const availableBooks = books.data.filter(b => b.available_copies > 0);
+        bookSelect.innerHTML = '<option value="">-- Chọn Sách --</option>' + 
+          availableBooks.map(b => `<option value="${b.id}">${b.title} (Còn ${b.available_copies} bản)</option>`).join('');
+
+        new bootstrap.Modal(document.getElementById('borrowModal')).show();
+      } catch (e) {
+        alert('Lỗi nạp dữ liệu mượn sách!');
+      }
+    }
+
+    async function submitBorrow(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+      try {
+        const res = await fetch('/api/borrow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          bootstrap.Modal.getInstance(document.getElementById('borrowModal')).hide();
+          form.reset();
+          loadBorrowRecords();
+          loadStats();
+          loadRecentBorrows();
+          alert('Tạo phiếu mượn thành công!');
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (e) {
+        alert('Lỗi kết nối máy chủ!');
+      }
+    }
+
+    async function returnBook(id) {
+      if (!confirm('Xác nhận độc giả đã trả cuốn sách này vào kho?')) return;
+      try {
+        const res = await fetch(`/api/return/${id}`, { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+          loadBorrowRecords();
+          loadStats();
+          loadRecentBorrows();
+          alert('Xác nhận trả sách thành công! Đã tăng số lượng khả dụng.');
+        } else {
+          alert('Lỗi: ' + json.error);
+        }
+      } catch (e) {
+        alert('Lỗi kết nối!');
+      }
+    }
+  </script>
+</body>
+</html>
